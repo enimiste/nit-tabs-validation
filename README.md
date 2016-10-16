@@ -7,6 +7,12 @@ Can be used also to check Parsley validation before move from a tab to another.
  bower install --save nit-tabs-validation
 ```   
 
+```html
+ <script src="path/to/jquery.js"></script>
+ <script src="path/to/parsley.js"></script>
+ <script src="path/to/nit-tabs-validation/index.js"></script>
+
+```
 ## Usage :
 
 1. ADD "data-tab-id" ATTRIBUTE IN EACH <a> OF YOUR .nav-tabs div. Give each one a integer id, ex : 1
