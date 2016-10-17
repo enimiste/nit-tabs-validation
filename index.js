@@ -94,6 +94,8 @@
      * @param instance
      */
     function isAllValid (instance) {
+      if (instance === undefined) return true;
+      if (_.has(instance, '$elements') && instance.$elements.length == 1) instance = [instance];
       return _.reduce(instance, function (acc, p) {
         if (_.has(p, '__class__')) {
           p.validate();
