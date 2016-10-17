@@ -34,7 +34,7 @@ Can be used also to check Parsley validation before move from a tab to another.
     var rules = new NickelITParsleyRules();
     rules.add(1, rules.new(identification));
     rules.add(2, rules.new(info_demandeur));
-    rules.add(2, rules.conditional('input[name="optionsRadios_b"]:checked', rules.newMatcher()
+    rules.add(3, rules.conditional('input[name="optionsRadios_b"]:checked', rules.newMatcher()
                     .whenValue('personne physique', rules.new(beneficiaire_personne_physique))
                     .whenValue('personne morale', rules.new(beneficiaire_personne_morale)))
             );
