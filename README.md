@@ -25,18 +25,25 @@ Can be used also to check Parsley validation before move from a tab to another.
 7. NEXT AFTER THE LINE THAT IMPORT JS LIBRARIES YOU INSTANCIATE THIS LIBRARY AND CONFIGURE IT. EX :
 
 ```js
-     var identification = $('.inform_cn_validation').parsley();
-     var info_demandeur = $('.info_demand_validation').parsley();
-     var rules = {
-                1: [identification],//array of parsley instances
-                2: [info_demandeur]
-            };
- 
-     var nit = new NickelITValidation('.nit-validation-elem', [1, 2, 3], '.nav.nav-tabs a[data-tab-id]', rules);
-     nit.setCanDisableInactiveTabs(false);//set if the library should disable the inactive tabs or not
-     nit.setActiveTab(1);//set the initial actived tab
-     nit.setNextBtnSelector('.btnNext');//to handle the click on the next button
-     nit.setPrevBtnSelector('.btnPrevious');//to handle the click on the prev button
+    var identification = $('.nit-validation.ident_entr, .nit-validation.inform_cn').parsley();
+    var info_demandeur = $('.nit-validation.info_demand').parsley();
+
+    /*
+     tab_id : prasley instance,
+     */
+    var rules = new NickelITParsleyRules();
+    rules.add(1, rules.new(identification));
+    rules.add(2, rules.new(info_demandeur));
+    /*
+     1 : identification
+     2 : informations demandeur
+     3 : récapitulatif
+     */
+    var nit = new NickelITValidation('.nit-validation-elem', [1, 2, 3], '.nav.nav-tabs a[data-tab-id]', rules);
+    nit.setCanDisableInactiveTabs(true);
+    nit.setActiveTab(1);
+    nit.setNextBtnSelector('.btnNext');
+    nit.setPrevBtnSelector('.btnPrevious');
 ```
 
 ## License 
