@@ -20,6 +20,10 @@
  *           var rules = new NickelITParsleyRules();
  *           rules.add(1, rules.new(identification));
  *           rules.add(2, rules.new(info_demandeur));
+ *           rules.add(2, rules.conditional('input[name="optionsRadios_b"]:checked', rules.newMatcher()
+ *                              .whenValue('personne physique', rules.new(beneficiaire_personne_physique))
+ *                              .whenValue('personne morale', rules.new(beneficiaire_personne_morale)))
+ *                      );
  *
  *           var nit = new NickelITValidation('.nit-validation-elem', [1, 2, 3], '.nav.nav-tabs a[data-tab-id]', rules);
  *           nit.setCanDisableInactiveTabs(true);
@@ -236,7 +240,9 @@
     this.new = function (parslyInstance) {
       if (!_.isObject(parslyInstance))
         throw 'You should pass one Parsley instance to new() function to add rule';
-      if (_.has(parslyInstance, '$elements') && parslyInstance.$elements.length == 1) parslyInstance = [parslyInstance];
+      if (!_.isArray(parslyInstance)) {
+        parslyInstance = [parslyInstance];
+      }
       return new NickelITParsleySimpleRule(parslyInstance);
     };
 
@@ -324,7 +330,9 @@
     this.__nit__class__ = 'NickelITParsleyAndRule';
 
     this.isValid = function () {
-      return true;
+      return _.reduce(this.rules, function (acc, r) {
+        return acc && r.isValid();
+      }, true);
     };
 
     return this;
@@ -335,7 +343,9 @@
     this.__nit__class__ = 'NickelITParsleyOrRule';
 
     this.isValid = function () {
-      return true;
+      for (var i = 0; i < this.rules.length; i++) {
+        if (this.rules[i].isValid()) return true;
+      }
     }
   };
 
@@ -345,7 +355,13 @@
     this.__nit__class__ = 'NickelITParsleyConditionalRule';
 
     this.isValid = function () {
-      return true;
+      var elem = $(discriminatorSelector);
+      if (elem === undefined)
+        throw 'Element not found with selector : ' + discriminatorSelector;
+      var value = elem.val();
+      var rule = this.matcher.match(value);
+      if (rule !== undefined) return rule.isValid();
+      else return true;
     };
 
     return this;
@@ -366,6 +382,15 @@
       if (!_.has(this.matching, val)) _.set(this.matching, val, rule);
 
       return this;
+    };
+
+    /**
+     *
+     * @param val string
+     */
+    this.match = function (val) {
+      if (_.has(this.matching, val)) return _.propertyOf(this.matching)(val);
+      else return undefined;
     };
 
     return this;
