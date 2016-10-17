@@ -21,6 +21,7 @@
     "tests"
   ],
   "dependencies": {
-    "parsleyjs": "^2.5.0"
+    "parsleyjs": "^2.5.0",
+    "lodash": "^4.16.4"
   }
 }
