@@ -59,13 +59,15 @@
     /**
      *
      * @param selector string
+     * @param onclick function callback to call when next btn clicked and validation passed
      */
-    function setNextBtnSelector (selector) {
+    function setNextBtnSelector (selector, onclick) {
       $(selector).each(function () {
-        $(this).click(function () {
+        $(this).click(function (event) {
           //Check if our input are valid
           if (canMoveNext()) {
             moveToNextTab();
+            if (_.isFunction(onclick)) onclick(event);
           }
         });
       });
@@ -74,11 +76,13 @@
     /**
      *
      * @param selector string
+     * @param onclick function callback to call when prev btn clicked and validation passed
      */
-    function setPrevBtnSelector (selector) {
+    function setPrevBtnSelector (selector, onclick) {
       $(selector).each(function () {
-        $(this).click(function () {
+        $(this).click(function (event) {
           moveToPrevTab();
+          if (_.isFunction(onclick)) onclick(event);
         })
       });
     }
