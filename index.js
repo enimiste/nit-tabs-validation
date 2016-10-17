@@ -34,11 +34,16 @@
    * @param storageSelector string
    * @param tabIds Array of ints
    * @param tabNavSelector string returns list of <a> with data-tab-id attribute
-   * @param parsleyRules Object (Keys as tab id, value as parsley instance(s))
+   * @param parsleyRules NickelITParsleyRules (Keys as tab id, value as parsley instance(s))
    * @returns {NickelITValidation}
    * @constructor
    */
   window.NickelITValidation = function (storageSelector, tabIds, tabNavSelector, parsleyRules) {
+    this.__nit__class__ = 'NickelITValidation';
+
+    if (parsleyRules !== undefined && (!_.has(parsleyRules, '__nit__class__') || parsleyRules.__nit__class__ !== 'NickelITParsleyRules')) {
+      throw 'parsleyRules shoud be of type NickelITParsleyRules';
+    }
 
     this.canDisableInactiveTabs = true;
     this.foncusOnInputOnFailer = true;
@@ -88,41 +93,18 @@
     }
 
     /**
-     * Returns true if all input within this instances list are valid
-     *
-     * @returns boolean
-     * @param instance
-     */
-    function isAllValid (instance) {
-      if (instance === undefined) return true;
-      if (_.has(instance, '$elements') && instance.$elements.length == 1) instance = [instance];
-      return _.reduce(instance, function (acc, p) {
-        if (_.has(p, '__class__')) {
-          p.validate();
-          return acc && p.isValid();
-        }
-        else return true;
-      }, true);
-    }
-
-    /**
      * @returns boolaan
      */
     function canMoveNext () {
-      if (!_.isPlainObject(parsleyRules)) return true;
+      if (parsleyRules === undefined) return true;
       else {
         var active = activeTab();
-        if (!_.has(parsleyRules, active)) {
+        var rule = parsleyRules.getRuleByTabId(active);
+        if (rule === undefined) {
+          console.log('Rule not found for tabId ' + active);
           return true;
         }
-        else {
-          var rule = _.propertyOf(parsleyRules)(active);
-          if (!_.isArray(rule))
-            rule = [rule];
-          return _.reduce(rule, function (acc, r) {
-            return acc && isAllValid(r);
-          }, true);
-        }
+        else return rule.isValid();
       }
     }
 
@@ -214,6 +196,179 @@
     }
 
     return this;
-  }
+  };
+
+  window.NickelITParsleyRules = function () {
+
+    this.__nit__class__ = 'NickelITParsleyRules';
+    this.rules = {};
+
+    /**
+     *
+     * @param rule
+     * @throws TypeError exception
+     */
+    this.checkRule = function checkRule (rule) {
+      if (!this.isRule(rule))
+        throw 'rule should be a valid rule';
+    };
+
+    /**
+     *
+     * @param rules
+     * @throws TypeError exception
+     */
+    this.checkRules = function (rules) {
+      for (var i = 0; i < rules.length; i++) {
+        this.checkRule(rules[i]);
+      }
+    };
+
+    this.add = function (tabId, rule) {
+      this.checkRule(rule);
+      if (!_.has(this.rules, tabId)) _.set(this.rules, tabId, rule);
+    };
+
+    /**
+     *
+     * @param parslyInstance Parsley Instance
+     */
+    this.new = function (parslyInstance) {
+      if (!_.isObject(parslyInstance))
+        throw 'You should pass one Parsley instance to new() function to add rule';
+      if (_.has(parslyInstance, '$elements') && parslyInstance.$elements.length == 1) parslyInstance = [parslyInstance];
+      return new NickelITParsleySimpleRule(parslyInstance);
+    };
+
+    /**
+     *
+     * @param rules Array of {Window.NickelITParsleySimpleRule}
+     */
+    this.or = function (rules) {
+      if (!_.isArray(rules))
+        throw 'rules param should be an array of Rules';
+      this.checkRules(rules);
+      return new NickelITParsleyOrRule(rules);
+    };
+
+    /**
+     *
+     * @param rules Array of {Window.NickelITParsleySimpleRule}
+     */
+    this.and = function (rules) {
+      if (!_.isArray(rules))
+        throw 'rules param should be an array of Rules';
+      this.checkRules(rules);
+      return new NickelITParsleyAndRule(rules);
+    };
+
+    /**
+     *
+     * @param discriminatorSelector string
+     * @param matcher {Window.NickelITParsleyConditionalRuleMatcher}
+     */
+    this.conditional = function (discriminatorSelector, matcher) {
+      return new NickelITParsleyConditionalRule(discriminatorSelector, matcher);
+    };
+
+    /**
+     *
+     * @returns {Window.NickelITParsleyConditionalRuleMatcher}
+     */
+    this.newMatcher = function () {
+      return new NickelITParsleyConditionalRuleMatcher(this);
+    };
+
+    /**
+     *
+     * @param rule
+     */
+    this.isRule = function (rule) {
+      return rule !== undefined
+        && _.has(rule, '__nit__class__')
+        && (
+          rule.__nit__class__ === 'NickelITParsleySimpleRule'
+          || rule.__nit__class__ === 'NickelITParsleyAndRule'
+          || rule.__nit__class__ === 'NickelITParsleyOrRule'
+          || rule.__nit__class__ === 'NickelITParsleyConditionalRule'
+        );
+    };
+
+    this.getRuleByTabId = function (tabId) {
+      if (_.has(this.rules, tabId)) return _.propertyOf(this.rules)(tabId);
+      else return undefined;
+    };
+
+    return this;
+  };
+
+  window.NickelITParsleySimpleRule = function (parsleyInstance) {
+    this.parsleyInstance = parsleyInstance;
+    this.__nit__class__ = 'NickelITParsleySimpleRule';
+
+    this.isValid = function () {
+      return _.reduce(this.parsleyInstance, function (acc, p) {
+        if (_.has(p, '__class__')) {
+          p.validate();
+          return acc && p.isValid();
+        }
+        else return acc && true;
+      }, true);
+    };
+
+    return this;
+  };
+
+  window.NickelITParsleyAndRule = function (rules) {
+    this.rules = rules;
+    this.__nit__class__ = 'NickelITParsleyAndRule';
+
+    this.isValid = function () {
+      return true;
+    };
+
+    return this;
+  };
+
+  window.NickelITParsleyOrRule = function (rules) {
+    this.rules = rules;
+    this.__nit__class__ = 'NickelITParsleyOrRule';
+
+    this.isValid = function () {
+      return true;
+    }
+  };
+
+  window.NickelITParsleyConditionalRule = function (discriminatorSelector, matcher) {
+    this.discriminatorSelector = discriminatorSelector;
+    this.matcher = matcher;
+    this.__nit__class__ = 'NickelITParsleyConditionalRule';
+
+    this.isValid = function () {
+      return true;
+    };
+
+    return this;
+  };
+
+  window.NickelITParsleyConditionalRuleMatcher = function (nickelITParsleyRules) {
+    this.matching = {};
+    this.nickelITParsleyRules = nickelITParsleyRules;
+    this.__nit__class__ = 'NickelITParsleyConditionalRule';
+
+    /**
+     *
+     * @param val string
+     * @param rule
+     */
+    this.whenValue = function (val, rule) {
+      this.nickelITParsleyRules.checkRule(rule);
+      if (!_.has(this.matching, val)) _.set(this.matching, val, rule);
+
+      return this;
+    };
+
+    return this;
+  };
 
 })(window, _, $, window.Parsley);
