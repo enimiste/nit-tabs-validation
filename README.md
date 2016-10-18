@@ -1,7 +1,8 @@
 # Tabs workflow management and validation
 This package can be used with Twitter Bootstrap to manage the workflow between tabs.
-Can be used also to check Parsley validation before move from a tab to another.
+Old : Can be used also to check Parsley validation before move from a tab to another.
 
+Now : The library is Parsley agnostic. The validator should implements three functions : `refresh():void`, `validate():void` and `isValid():Boolean`
 ## Installation :
 ```sh
  bower install --save nit-tabs-validation
@@ -25,19 +26,24 @@ Can be used also to check Parsley validation before move from a tab to another.
 7. NEXT AFTER THE LINE THAT IMPORT JS LIBRARIES YOU INSTANCIATE THIS LIBRARY AND CONFIGURE IT. EX :
 
 ```js
-    var identification = $('.nit-validation.ident_entr, .nit-validation.inform_cn').parsley();
-    var info_demandeur = $('.nit-validation.info_demand').parsley();
+    var identification = new NickelITParsleyValidator('.nit-validation.ident_entr, .nit-validation.inform_cn');
+    var info_demandeur = new NickelITParsleyValidator('.nit-validation.info_demand');
 
-    /*
-     tab_id : prasley instance,
-     */
+    //To create your own validator
+    var customValidator = function () {
+        this.refresh = function () {
+        };
+        this.validate = function () {
+        };
+        this.isValid = function () {
+            return true;
+        };
+        return this;
+    };
     var rules = new NickelITParsleyRules();
     rules.add(1, rules.new(identification));
     rules.add(2, rules.new(info_demandeur));
-    rules.add(3, rules.conditional('input[name="optionsRadios_b"]:checked', rules.newMatcher()
-                    .whenValue('personne physique', rules.new(beneficiaire_personne_physique))
-                    .whenValue('personne morale', rules.new(beneficiaire_personne_morale)))
-            );
+    rules.add(3, rules.new(new customValidator()));
     /*
      1 : identification
      2 : informations demandeur

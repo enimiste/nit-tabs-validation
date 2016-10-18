@@ -14,16 +14,26 @@
  *      SO YOU CAN CREATE PARSLEY INSTANCE BY TAB PAGE.
  * 6. CREATE A JS OBJECT WITH KEYS AS TABS ID AND VALUES AN ARRAY WITH THE CREATED PARSLEY INSTANCES.
  * 7. NEXT AFTER THE LINE THAT IMPORT JS LIBRARIES YOU INSTANCIATE THIS LIBRARY AND CONFIGURE IT. EX :
- *           var identification = $('.nit-validation.ident_entr, .nit-validation.inform_cn').parsley();
- *           var info_demandeur = $('.nit-validation.info_demand').parsley();
+ *           var identification = NickelITParsleyValidator('.nit-validation.ident_entr, .nit-validation.inform_cn');
+ *           var info_demandeur = NickelITParsleyValidator('.nit-validation.info_demand');
  *
+ *           var customValidator = function () {
+ *               this.refresh = function () {
+ *               };
+ *
+ *               this.validate = function () {
+ *               };
+ *
+ *               this.isValid = function () {
+ *                   return true;
+ *               };
+ *
+ *               return this;
+ *           };
  *           var rules = new NickelITParsleyRules();
  *           rules.add(1, rules.new(identification));
  *           rules.add(2, rules.new(info_demandeur));
- *           rules.add(3, rules.conditional('input[name="optionsRadios_b"]:checked', rules.newMatcher()
- *                              .whenValue('personne physique', rules.new(beneficiaire_personne_physique))
- *                              .whenValue('personne morale', rules.new(beneficiaire_personne_morale)))
- *                      );
+ *           rules.add(2, rules.new(new customValidator()));
  *
  *           var nit = new NickelITValidation('.nit-validation-elem', [1, 2, 3], '.nav.nav-tabs a[data-tab-id]', rules);
  *           nit.setCanDisableInactiveTabs(true);
@@ -38,15 +48,15 @@
    * @param storageSelector string
    * @param tabIds Array of ints
    * @param tabNavSelector string returns list of <a> with data-tab-id attribute
-   * @param parsleyRules NickelITParsleyRules (Keys as tab id, value as parsley instance(s))
+   * @param validatorRules NickelITParsleyRules (Keys as tab id, value as parsley instance(s))
    * @returns {NickelITValidation}
    * @constructor
    */
-  window.NickelITValidation = function (storageSelector, tabIds, tabNavSelector, parsleyRules) {
+  window.NickelITValidation = function (storageSelector, tabIds, tabNavSelector, validatorRules) {
     this.__nit__class__ = 'NickelITValidation';
 
-    if (parsleyRules !== undefined && (!_.has(parsleyRules, '__nit__class__') || parsleyRules.__nit__class__ !== 'NickelITParsleyRules')) {
-      throw 'parsleyRules shoud be of type NickelITParsleyRules';
+    if (validatorRules !== undefined && (!_.has(validatorRules, '__nit__class__') || validatorRules.__nit__class__ !== 'NickelITParsleyRules')) {
+      throw 'validatorRules should be of type NickelITParsleyRules';
     }
 
     this.canDisableInactiveTabs = true;
@@ -100,10 +110,10 @@
      * @returns boolaan
      */
     function canMoveNext () {
-      if (parsleyRules === undefined) return true;
+      if (validatorRules === undefined) return true;
       else {
         var active = activeTab();
-        var rule = parsleyRules.getRuleByTabId(active);
+        var rule = validatorRules.getRuleByTabId(active);
         if (rule === undefined) {
           console.log('Rule not found for tabId ' + active);
           return true;
@@ -235,15 +245,13 @@
 
     /**
      *
-     * @param parslyInstance Parsley Instance
+     * @param validatorInstance Parsley Instance
      */
-    this.new = function (parslyInstance) {
-      if (!_.isObject(parslyInstance))
-        throw 'You should pass one Parsley instance to new() function to add rule';
-      if (!_.isArray(parslyInstance)) {
-        parslyInstance = [parslyInstance];
-      }
-      return new NickelITParsleySimpleRule(parslyInstance);
+    this.new = function (validatorInstance) {
+      if (!hasFunctions(validatorInstance, ['refresh', 'validate', 'isValid']))
+        throw 'The validator instance should implement these functions : refresh():void, validate():void, isValid():boolean';
+
+      return new NickelITParsleySimpleRule(validatorInstance);
     };
 
     /**
@@ -308,18 +316,17 @@
     return this;
   };
 
-  window.NickelITParsleySimpleRule = function (parsleyInstance) {
-    this.parsleyInstance = parsleyInstance;
+  window.NickelITParsleySimpleRule = function (validatorInstance) {
+    this.validatorInstance = validatorInstance;
     this.__nit__class__ = 'NickelITParsleySimpleRule';
 
+    if (!hasFunctions(validatorInstance, ['refresh', 'validate', 'isValid']))
+      throw 'The validator instance should implement these functions : refresh():void, validate():void, isValid():boolean';
+
     this.isValid = function () {
-      return _.reduce(this.parsleyInstance, function (acc, p) {
-        if (_.has(p, '__class__')) {
-          p.validate();
-          return acc && p.isValid();
-        }
-        else return acc && true;
-      }, true);
+      this.validatorInstance.refresh();
+      this.validatorInstance.validate();
+      return this.validatorInstance.isValid();
     };
 
     return this;
@@ -395,5 +402,34 @@
 
     return this;
   };
+
+  window.NickelITParsleyValidator = function (selector) {
+    this.instances = [];
+    this.selector = selector;
+
+    this.refresh = function () {
+      this.instances = $(this.selector).parsley();
+      if (!_.isArray(this.instances)) this.instances = [this.instances];
+    };
+
+    this.validate = function () {
+      _.each(this.instances, function (i) {
+        i.validate();
+      });
+    };
+
+    this.isValid = function () {
+      return _.reduce(this.instances, function (acc, i) {
+        return acc && i.isValid();
+      }, true);
+    };
+
+    this.refresh();
+    return this;
+  };
+
+  window.hasFunctions = function (obj, fns) {
+    return _.intersection(_.functions(obj), fns).length === fns.length;
+  }
 
 })(window, _, $, window.Parsley);
