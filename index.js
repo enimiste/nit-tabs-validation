@@ -18,7 +18,8 @@
  *           var info_demandeur = NickelITParsleyValidator('.nit-validation.info_demand');
  *
  *           var customValidator = function () {
- *               this.refresh = function () {
+ *               this.init = function () {
+ *                   //This function is executed once at registration
  *               };
  *
  *               this.validate = function () {
@@ -248,8 +249,8 @@
      * @param validatorInstance Parsley Instance
      */
     this.new = function (validatorInstance) {
-      if (!hasFunctions(validatorInstance, ['refresh', 'validate', 'isValid']))
-        throw 'The validator instance should implement these functions : refresh():void, validate():void, isValid():boolean';
+      if (!hasFunctions(validatorInstance, ['init', 'validate', 'isValid']))
+        throw 'The validator instance should implement these functions : init():void, validate():void, isValid():boolean';
 
       return new NickelITParsleySimpleRule(validatorInstance);
     };
@@ -320,11 +321,12 @@
     this.validatorInstance = validatorInstance;
     this.__nit__class__ = 'NickelITParsleySimpleRule';
 
-    if (!hasFunctions(validatorInstance, ['refresh', 'validate', 'isValid']))
-      throw 'The validator instance should implement these functions : refresh():void, validate():void, isValid():boolean';
+    if (!hasFunctions(validatorInstance, ['init', 'validate', 'isValid']))
+      throw 'The validator instance should implement these functions : init():void, validate():void, isValid():boolean';
+
+    validatorInstance.init();
 
     this.isValid = function () {
-      this.validatorInstance.refresh();
       this.validatorInstance.validate();
       return this.validatorInstance.isValid();
     };
@@ -407,12 +409,14 @@
     this.instances = [];
     this.selector = selector;
 
-    this.refresh = function () {
+    this.init = function () {
+      //This function is executed once at registration
       this.instances = $(this.selector).parsley();
       if (!_.isArray(this.instances)) this.instances = [this.instances];
     };
 
     this.validate = function () {
+      this.init();
       _.each(this.instances, function (i) {
         i.validate();
       });
@@ -424,7 +428,6 @@
       }, true);
     };
 
-    this.refresh();
     return this;
   };
 

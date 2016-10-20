@@ -31,7 +31,8 @@ Now : The library is Parsley agnostic. The validator should implements three fun
 
     //To create your own validator
     var customValidator = function () {
-        this.refresh = function () {
+        this.init = function () {
+            //This function is executed once at registration
         };
         this.validate = function () {
         };
