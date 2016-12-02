@@ -45,6 +45,8 @@ Now : The library is Parsley agnostic. The validator should implements three fun
     rules.add(1, rules.new(identification));
     rules.add(2, rules.new(info_demandeur));
     rules.add(3, rules.new(new customValidator()));
+    rules.add(3, rules.and(rule1, rule2, ...));//Or rules.add(3, rules.and([rule1, rule2, ...]))
+    rules.add(3, rules.or(rule1, rule2, ...));//Or rules.add(3, rules.or([rule1, rule2, ...]))
     /*
      1 : identification
      2 : informations demandeur

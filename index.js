@@ -44,395 +44,404 @@
  */
 (function (window, _, $, Prasley) {
 
-  /**
-   *
-   * @param storageSelector string
-   * @param tabIds Array of ints
-   * @param tabNavSelector string returns list of <a> with data-tab-id attribute
-   * @param validatorRules NickelITParsleyRules (Keys as tab id, value as parsley instance(s))
-   * @returns {NickelITValidation}
-   * @constructor
-   */
-  window.NickelITValidation = function (storageSelector, tabIds, tabNavSelector, validatorRules) {
-    this.__nit__class__ = 'NickelITValidation';
-
-    if (validatorRules !== undefined && (!_.has(validatorRules, '__nit__class__') || validatorRules.__nit__class__ !== 'NickelITParsleyRules')) {
-      throw 'validatorRules should be of type NickelITParsleyRules';
-    }
-
-    this.canDisableInactiveTabs = true;
-    this.foncusOnInputOnFailer = true;
-    /**
-     * @param val boolean
-     */
-    function setCanDisableInactiveTabs (val) {
-      canDisableInactiveTabs = val;
-    }
-
-    /**
-     * @param val boolean
-     */
-    function setFoncusOnInputOnFailer (val) {
-      foncusOnInputOnFailer = val;
-    }
-
     /**
      *
-     * @param selector string
-     * @param onclick function callback to call when next btn clicked and validation passed
+     * @param storageSelector string
+     * @param tabIds Array of ints
+     * @param tabNavSelector string returns list of <a> with data-tab-id attribute
+     * @param validatorRules NickelITParsleyRules (Keys as tab id, value as parsley instance(s))
+     * @returns {NickelITValidation}
+     * @constructor
      */
-    function setNextBtnSelector (selector, onclick) {
-      $(selector).each(function () {
-        $(this).click(function (event) {
-          //Check if our input are valid
-          if (canMoveNext()) {
-            moveToNextTab();
-            if (_.isFunction(onclick)) onclick(event);
-          }
-        });
-      });
-    }
+    window.NickelITValidation = function (storageSelector, tabIds, tabNavSelector, validatorRules) {
+        this.__nit__class__ = 'NickelITValidation';
 
-    /**
-     *
-     * @param selector string
-     * @param onclick function callback to call when prev btn clicked and validation passed
-     */
-    function setPrevBtnSelector (selector, onclick) {
-      $(selector).each(function () {
-        $(this).click(function (event) {
-          moveToPrevTab();
-          if (_.isFunction(onclick)) onclick(event);
-        })
-      });
-    }
-
-    /**
-     * @returns boolaan
-     */
-    function canMoveNext () {
-      if (validatorRules === undefined) return true;
-      else {
-        var active = activeTab();
-        var rule = validatorRules.getRuleByTabId(active);
-        if (rule === undefined) {
-          console.log('Rule not found for tabId ' + active);
-          return true;
+        if (validatorRules !== undefined && (!_.has(validatorRules, '__nit__class__') || validatorRules.__nit__class__ !== 'NickelITParsleyRules')) {
+            throw 'validatorRules should be of type NickelITParsleyRules';
         }
-        else return rule.isValid();
-      }
+
+        this.canDisableInactiveTabs = true;
+        this.foncusOnInputOnFailer = true;
+        /**
+         * @param val boolean
+         */
+        function setCanDisableInactiveTabs(val) {
+            canDisableInactiveTabs = val;
+        }
+
+        /**
+         * @param val boolean
+         */
+        function setFocusOnInputOnFailure(val) {
+            foncusOnInputOnFailer = val;
+        }
+
+        /**
+         *
+         * @param selector string
+         * @param onclick function callback to call when next btn clicked and validation passed
+         */
+        function setNextBtnSelector(selector, onclick) {
+            $(selector).each(function () {
+                $(this).click(function (event) {
+                    //Check if our input are valid
+                    if (canMoveNext()) {
+                        moveToNextTab();
+                        if (_.isFunction(onclick)) onclick(event);
+                    }
+                });
+            });
+        }
+
+        /**
+         *
+         * @param selector string
+         * @param onclick function callback to call when prev btn clicked and validation passed
+         */
+        function setPrevBtnSelector(selector, onclick) {
+            $(selector).each(function () {
+                $(this).click(function (event) {
+                    moveToPrevTab();
+                    if (_.isFunction(onclick)) onclick(event);
+                })
+            });
+        }
+
+        /**
+         * @returns boolaan
+         */
+        function canMoveNext() {
+            if (validatorRules === undefined) return true;
+            else {
+                var active = activeTab();
+                var rule = validatorRules.getRuleByTabId(active);
+                if (rule === undefined) {
+                    console.log('Rule not found for tabId ' + active);
+                    return true;
+                }
+                else return rule.isValid();
+            }
+        }
+
+        /**
+         * @param val
+         */
+        function setActiveTab(val) {
+            var elem = $(storageSelector);
+            elem.data('active-tab', val);
+            var min = _.min(tabIds);
+            if (val > min)
+                elem.data('prev-tab', (val - 1));
+            else
+                elem.data('prev-tab', '');
+            disableInactiveTabs();
+        }
+
+        /**
+         * Updates values on btns
+         *
+         */
+        function moveToNextTab() {
+            var tab = $(storageSelector).data('active-tab');
+            setActiveTab(tab + 1);
+        }
+
+        /**
+         * Updates values on btns
+         *
+         */
+        function moveToPrevTab() {
+            var tab = $(storageSelector).data('active-tab');
+            setActiveTab(tab - 1);
+        }
+
+        /**
+         * @return int tabIds id
+         */
+        function activeTab() {
+            return $(storageSelector).data('active-tab');
+        }
+
+        /**
+         *
+         */
+        function disableInactiveTabs() {
+            if (canDisableInactiveTabs == true) {
+                var tabs_link = $(tabNavSelector);
+                var active = activeTab();
+                tabs_link.each(function () {
+                    var elem = $(this);
+                    if (elem.data('tab-id') != active) {
+                        elem.css("cursor", "not-allowed");
+                        elem.on('click', preventTabClick);
+                    } else {
+                        elem.css("cursor", "default");
+                        elem.off('click', preventTabClick);
+                        elem.trigger('click');
+                    }
+                });
+            }
+        }
+
+        /**
+         *
+         * @param event
+         * @returns {boolean}
+         */
+        function preventTabClick(event) {
+            event.preventDefault();
+            return false;
+        }
+
+        this.activeTab = activeTab;
+        this.moveToPrevTab = moveToPrevTab;
+        this.moveToNextTab = moveToNextTab;
+        this.setActiveTab = setActiveTab;
+        this.canMoveNext = canMoveNext;
+        this.disableInactiveTabs = disableInactiveTabs;
+        this.setNextBtnSelector = setNextBtnSelector;
+        this.setPrevBtnSelector = setPrevBtnSelector;
+        this.setCanDisableInactiveTabs = setCanDisableInactiveTabs;
+        this.setFocusOnInputOnFailure = setFocusOnInputOnFailure;
+
+        if (this.foncusOnInputOnFailer == true) {
+            Prasley.on('field:error', function () {
+                //TODO : set the focus on the input that has been failed
+            });
+        }
+
+        return this;
+    };
+
+    window.NickelITParsleyRules = function () {
+
+        this.__nit__class__ = 'NickelITParsleyRules';
+        this.rules = {};
+
+        /**
+         *
+         * @param rule
+         * @throws TypeError exception
+         */
+        this.checkRule = function checkRule(rule) {
+            if (!this.isRule(rule))
+                throw 'rule should be a valid rule';
+        };
+
+        /**
+         *
+         * @param rules
+         * @throws TypeError exception
+         */
+        this.checkRules = function (rules) {
+            if (!_.isArray(rules))
+                throw 'rules param should be an array of Rules';
+
+            for (var i = 0; i < rules.length; i++) {
+                this.checkRule(rules[i]);
+            }
+        };
+
+        this.add = function (tabId, rule) {
+            this.checkRule(rule);
+            if (!_.has(this.rules, tabId)) _.set(this.rules, tabId, rule);
+        };
+
+        /**
+         *
+         * @param validatorInstance Parsley Instance
+         */
+        this.new = function (validatorInstance) {
+            if (!hasFunctions(validatorInstance, ['init', 'validate', 'isValid']))
+                throw 'The validator instance should implement these functions : init():void, validate():void, isValid():boolean';
+
+            return new NickelITParsleySimpleRule(validatorInstance);
+        };
+
+        /**
+         *
+         * @param rules Array of {Window.NickelITParsleySimpleRule}
+         */
+        this.or = function (rules) {
+            if (arguments.length > 1)
+                this.rules = Array.prototype.slice.call(arguments);
+            else
+                this.rules = rules;
+
+            this.checkRules(rules);
+            return new NickelITParsleyOrRule(rules);
+        };
+
+        /**
+         *
+         * @param rules Array of {Window.NickelITParsleySimpleRule}
+         */
+        this.and = function (rules) {
+            if (arguments.length > 1)
+                this.rules = Array.prototype.slice.call(arguments);
+            else
+                this.rules = rules;
+
+            this.checkRules(rules);
+            return new NickelITParsleyAndRule(rules);
+        };
+
+        /**
+         *
+         * @param discriminatorSelector string
+         * @param matcher {Window.NickelITParsleyConditionalRuleMatcher}
+         */
+        this.conditional = function (discriminatorSelector, matcher) {
+            return new NickelITParsleyConditionalRule(discriminatorSelector, matcher);
+        };
+
+        /**
+         *
+         * @returns {Window.NickelITParsleyConditionalRuleMatcher}
+         */
+        this.newMatcher = function () {
+            return new NickelITParsleyConditionalRuleMatcher(this);
+        };
+
+        /**
+         *
+         * @param rule
+         */
+        this.isRule = function (rule) {
+            return rule !== undefined
+                && _.has(rule, '__nit__class__')
+                && (
+                    rule.__nit__class__ === 'NickelITParsleySimpleRule'
+                    || rule.__nit__class__ === 'NickelITParsleyAndRule'
+                    || rule.__nit__class__ === 'NickelITParsleyOrRule'
+                    || rule.__nit__class__ === 'NickelITParsleyConditionalRule'
+                );
+        };
+
+        this.getRuleByTabId = function (tabId) {
+            if (_.has(this.rules, tabId)) return _.propertyOf(this.rules)(tabId);
+            else return undefined;
+        };
+
+        return this;
+    };
+
+    window.NickelITParsleySimpleRule = function (validatorInstance) {
+        this.validatorInstance = validatorInstance;
+        this.__nit__class__ = 'NickelITParsleySimpleRule';
+
+        if (!hasFunctions(validatorInstance, ['init', 'validate', 'isValid']))
+            throw 'The validator instance should implement these functions : init():void, validate():void, isValid():boolean';
+
+        validatorInstance.init();
+
+        this.isValid = function () {
+            this.validatorInstance.validate();
+            return this.validatorInstance.isValid();
+        };
+
+        return this;
+    };
+
+    window.NickelITParsleyAndRule = function (rules) {
+        this.rules = rules;
+        this.__nit__class__ = 'NickelITParsleyAndRule';
+
+        this.isValid = function () {
+            return _.reduce(this.rules, function (acc, r) {
+                return acc && r.isValid();
+            }, true);
+        };
+
+        return this;
+    };
+
+    window.NickelITParsleyOrRule = function (rules) {
+        this.rules = rules;
+        this.__nit__class__ = 'NickelITParsleyOrRule';
+
+        this.isValid = function () {
+            for (var i = 0; i < this.rules.length; i++) {
+                if (this.rules[i].isValid()) return true;
+            }
+        }
+    };
+
+    window.NickelITParsleyConditionalRule = function (discriminatorSelector, matcher) {
+        this.discriminatorSelector = discriminatorSelector;
+        this.matcher = matcher;
+        this.__nit__class__ = 'NickelITParsleyConditionalRule';
+
+        this.isValid = function () {
+            var elem = $(this.discriminatorSelector);
+            if (elem === undefined)
+                throw 'Element not found with selector : ' + this.discriminatorSelector;
+            var value = elem.val();
+            var rule = this.matcher.match(value);
+            if (rule !== undefined) return rule.isValid();
+            else return true;
+        };
+
+        return this;
+    };
+
+    window.NickelITParsleyConditionalRuleMatcher = function (nickelITParsleyRules) {
+        this.matching = {};
+        this.nickelITParsleyRules = nickelITParsleyRules;
+        this.__nit__class__ = 'NickelITParsleyConditionalRule';
+
+        /**
+         *
+         * @param val string
+         * @param rule
+         */
+        this.whenValue = function (val, rule) {
+            this.nickelITParsleyRules.checkRule(rule);
+            if (!_.has(this.matching, val)) _.set(this.matching, val, rule);
+
+            return this;
+        };
+
+        /**
+         *
+         * @param val string
+         */
+        this.match = function (val) {
+            if (_.has(this.matching, val)) return _.propertyOf(this.matching)(val);
+            else return undefined;
+        };
+
+        return this;
+    };
+
+    window.NickelITParsleyValidator = function (selector) {
+        this.instances = [];
+        this.selector = selector;
+
+        this.init = function () {
+            //This function is executed once at registration
+            this.instances = $(this.selector).parsley();
+            if (!_.isArray(this.instances)) this.instances = [this.instances];
+        };
+
+        this.validate = function () {
+            this.init();
+            _.each(this.instances, function (i) {
+                i.validate();
+            });
+        };
+
+        this.isValid = function () {
+            return _.reduce(this.instances, function (acc, i) {
+                return acc && i.isValid();
+            }, true);
+        };
+
+        return this;
+    };
+
+    window.hasFunctions = function (obj, fns) {
+        return _.intersection(_.functions(obj), fns).length === fns.length;
     }
-
-    /**
-     * @param val
-     */
-    function setActiveTab (val) {
-      var elem = $(storageSelector);
-      elem.data('active-tab', val);
-      var min = _.min(tabIds);
-      if (val > min)
-        elem.data('prev-tab', (val - 1));
-      else
-        elem.data('prev-tab', '');
-      disableInactiveTabs();
-    }
-
-    /**
-     * Updates values on btns
-     *
-     */
-    function moveToNextTab () {
-      var tab = $(storageSelector).data('active-tab');
-      setActiveTab(tab + 1);
-    }
-
-    /**
-     * Updates values on btns
-     *
-     */
-    function moveToPrevTab () {
-      var tab = $(storageSelector).data('active-tab');
-      setActiveTab(tab - 1);
-    }
-
-    /**
-     * @return int tabIds id
-     */
-    function activeTab () {
-      return $(storageSelector).data('active-tab');
-    }
-
-    /**
-     *
-     */
-    function disableInactiveTabs () {
-      if (canDisableInactiveTabs == true) {
-        var tabs_link = $(tabNavSelector);
-        var active = activeTab();
-        tabs_link.each(function () {
-          var elem = $(this);
-          if (elem.data('tab-id') != active) {
-            elem.css("cursor", "not-allowed");
-            elem.on('click', preventTabClick);
-          } else {
-            elem.css("cursor", "default");
-            elem.off('click', preventTabClick);
-            elem.trigger('click');
-          }
-        });
-      }
-    }
-
-    /**
-     *
-     * @param event
-     * @returns {boolean}
-     */
-    function preventTabClick (event) {
-      event.preventDefault();
-      return false;
-    }
-
-    this.activeTab = activeTab;
-    this.moveToPrevTab = moveToPrevTab;
-    this.moveToNextTab = moveToNextTab;
-    this.setActiveTab = setActiveTab;
-    this.canMoveNext = canMoveNext;
-    this.disableInactiveTabs = disableInactiveTabs;
-    this.setNextBtnSelector = setNextBtnSelector;
-    this.setPrevBtnSelector = setPrevBtnSelector;
-    this.setCanDisableInactiveTabs = setCanDisableInactiveTabs;
-    this.setFoncusOnInputOnFailer = setFoncusOnInputOnFailer;
-
-    if (this.foncusOnInputOnFailer == true) {
-      Prasley.on('field:error', function () {
-        //TODO : set the focus on the input that has been failed
-      });
-    }
-
-    return this;
-  };
-
-  window.NickelITParsleyRules = function () {
-
-    this.__nit__class__ = 'NickelITParsleyRules';
-    this.rules = {};
-
-    /**
-     *
-     * @param rule
-     * @throws TypeError exception
-     */
-    this.checkRule = function checkRule (rule) {
-      if (!this.isRule(rule))
-        throw 'rule should be a valid rule';
-    };
-
-    /**
-     *
-     * @param rules
-     * @throws TypeError exception
-     */
-    this.checkRules = function (rules) {
-      for (var i = 0; i < rules.length; i++) {
-        this.checkRule(rules[i]);
-      }
-    };
-
-    this.add = function (tabId, rule) {
-      this.checkRule(rule);
-      if (!_.has(this.rules, tabId)) _.set(this.rules, tabId, rule);
-    };
-
-    /**
-     *
-     * @param validatorInstance Parsley Instance
-     */
-    this.new = function (validatorInstance) {
-      if (!hasFunctions(validatorInstance, ['init', 'validate', 'isValid']))
-        throw 'The validator instance should implement these functions : init():void, validate():void, isValid():boolean';
-
-      return new NickelITParsleySimpleRule(validatorInstance);
-    };
-
-    /**
-     *
-     * @param rules Array of {Window.NickelITParsleySimpleRule}
-     */
-    this.or = function (rules) {
-      if (!_.isArray(rules))
-        throw 'rules param should be an array of Rules';
-      this.checkRules(rules);
-      return new NickelITParsleyOrRule(rules);
-    };
-
-    /**
-     *
-     * @param rules Array of {Window.NickelITParsleySimpleRule}
-     */
-    this.and = function (rules) {
-      if (!_.isArray(rules))
-        throw 'rules param should be an array of Rules';
-      this.checkRules(rules);
-      return new NickelITParsleyAndRule(rules);
-    };
-
-    /**
-     *
-     * @param discriminatorSelector string
-     * @param matcher {Window.NickelITParsleyConditionalRuleMatcher}
-     */
-    this.conditional = function (discriminatorSelector, matcher) {
-      return new NickelITParsleyConditionalRule(discriminatorSelector, matcher);
-    };
-
-    /**
-     *
-     * @returns {Window.NickelITParsleyConditionalRuleMatcher}
-     */
-    this.newMatcher = function () {
-      return new NickelITParsleyConditionalRuleMatcher(this);
-    };
-
-    /**
-     *
-     * @param rule
-     */
-    this.isRule = function (rule) {
-      return rule !== undefined
-        && _.has(rule, '__nit__class__')
-        && (
-          rule.__nit__class__ === 'NickelITParsleySimpleRule'
-          || rule.__nit__class__ === 'NickelITParsleyAndRule'
-          || rule.__nit__class__ === 'NickelITParsleyOrRule'
-          || rule.__nit__class__ === 'NickelITParsleyConditionalRule'
-        );
-    };
-
-    this.getRuleByTabId = function (tabId) {
-      if (_.has(this.rules, tabId)) return _.propertyOf(this.rules)(tabId);
-      else return undefined;
-    };
-
-    return this;
-  };
-
-  window.NickelITParsleySimpleRule = function (validatorInstance) {
-    this.validatorInstance = validatorInstance;
-    this.__nit__class__ = 'NickelITParsleySimpleRule';
-
-    if (!hasFunctions(validatorInstance, ['init', 'validate', 'isValid']))
-      throw 'The validator instance should implement these functions : init():void, validate():void, isValid():boolean';
-
-    validatorInstance.init();
-
-    this.isValid = function () {
-      this.validatorInstance.validate();
-      return this.validatorInstance.isValid();
-    };
-
-    return this;
-  };
-
-  window.NickelITParsleyAndRule = function (rules) {
-    this.rules = rules;
-    this.__nit__class__ = 'NickelITParsleyAndRule';
-
-    this.isValid = function () {
-      return _.reduce(this.rules, function (acc, r) {
-        return acc && r.isValid();
-      }, true);
-    };
-
-    return this;
-  };
-
-  window.NickelITParsleyOrRule = function (rules) {
-    this.rules = rules;
-    this.__nit__class__ = 'NickelITParsleyOrRule';
-
-    this.isValid = function () {
-      for (var i = 0; i < this.rules.length; i++) {
-        if (this.rules[i].isValid()) return true;
-      }
-    }
-  };
-
-  window.NickelITParsleyConditionalRule = function (discriminatorSelector, matcher) {
-    this.discriminatorSelector = discriminatorSelector;
-    this.matcher = matcher;
-    this.__nit__class__ = 'NickelITParsleyConditionalRule';
-
-    this.isValid = function () {
-      var elem = $(discriminatorSelector);
-      if (elem === undefined)
-        throw 'Element not found with selector : ' + discriminatorSelector;
-      var value = elem.val();
-      var rule = this.matcher.match(value);
-      if (rule !== undefined) return rule.isValid();
-      else return true;
-    };
-
-    return this;
-  };
-
-  window.NickelITParsleyConditionalRuleMatcher = function (nickelITParsleyRules) {
-    this.matching = {};
-    this.nickelITParsleyRules = nickelITParsleyRules;
-    this.__nit__class__ = 'NickelITParsleyConditionalRule';
-
-    /**
-     *
-     * @param val string
-     * @param rule
-     */
-    this.whenValue = function (val, rule) {
-      this.nickelITParsleyRules.checkRule(rule);
-      if (!_.has(this.matching, val)) _.set(this.matching, val, rule);
-
-      return this;
-    };
-
-    /**
-     *
-     * @param val string
-     */
-    this.match = function (val) {
-      if (_.has(this.matching, val)) return _.propertyOf(this.matching)(val);
-      else return undefined;
-    };
-
-    return this;
-  };
-
-  window.NickelITParsleyValidator = function (selector) {
-    this.instances = [];
-    this.selector = selector;
-
-    this.init = function () {
-      //This function is executed once at registration
-      this.instances = $(this.selector).parsley();
-      if (!_.isArray(this.instances)) this.instances = [this.instances];
-    };
-
-    this.validate = function () {
-      this.init();
-      _.each(this.instances, function (i) {
-        i.validate();
-      });
-    };
-
-    this.isValid = function () {
-      return _.reduce(this.instances, function (acc, i) {
-        return acc && i.isValid();
-      }, true);
-    };
-
-    return this;
-  };
-
-  window.hasFunctions = function (obj, fns) {
-    return _.intersection(_.functions(obj), fns).length === fns.length;
-  }
 
 })(window, _, $, window.Parsley);
